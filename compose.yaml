@@ -1,0 +1,38 @@
+x-ros: &ros
+  image: ros-humble-peter
+  build:
+    context: ./ros/docker
+  network_mode: host
+  ipc: host
+  init: true
+  stdin_open: true
+  tty: true
+  environment:
+    ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+    ROS_LOCALHOST_ONLY: "0"
+  volumes:
+    - ./ros:/ros
+  working_dir: /ros
+  stop_grace_period: 15s
+
+services:
+  remote:
+    <<: *ros
+    profiles: [remote]
+    container_name: ${PETER_CONTAINER_NAME:-ros-peter-remote}
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: "0"
+      PETER_SIDE: remote
+    devices:
+      - /dev/video0:/dev/video0
+    command: [bash, /ros/ros_run.sh]
+  main:
+    <<: *ros
+    profiles: [main]
+    container_name: ${PETER_CONTAINER_NAME:-ros-peter-main}
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_LOCALHOST_ONLY: "0"
+      PETER_SIDE: main
+    command: [bash, -c, 'exec sleep infinity']
