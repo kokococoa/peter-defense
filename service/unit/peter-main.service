@@ -1,0 +1,18 @@
+[Unit]
+Description=Peter Defense main ROS container
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+WorkingDirectory=/opt/peter-defense
+ExecStart=/bin/bash /opt/peter-defense/service/scripts/peter-main.sh start
+ExecStop=/bin/bash /opt/peter-defense/service/scripts/peter-main.sh stop
+TimeoutStartSec=180
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

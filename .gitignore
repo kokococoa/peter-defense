@@ -5,3 +5,6 @@ ros/ros2_ws/log/
 __pycache__/
 *.py[cod]
 *.egg-info/
+
+# Local diagnostic reports, measurements, and scratch tools
+/info/

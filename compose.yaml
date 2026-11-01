@@ -26,7 +26,7 @@ services:
       PETER_SIDE: remote
     devices:
       - /dev/video0:/dev/video0
-    command: [bash, /ros/ros_run.sh]
+    command: [bash, /ros/ros_container.sh]
   main:
     <<: *ros
     profiles: [main]
@@ -35,4 +35,4 @@ services:
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
       PETER_SIDE: main
-    command: [bash, -c, 'exec sleep infinity']
+    command: [bash, /ros/ros_container.sh]

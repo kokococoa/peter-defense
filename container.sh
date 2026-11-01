@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 usage() { echo "Usage: bash container.sh [remote|main] {attach|start|stop} [container name]" >&2; exit 2; }
 # Load only validated configuration values; never execute .env as shell code.
 side=""
@@ -20,6 +20,15 @@ compose=(docker compose --project-directory "$ROOT" -f "$ROOT/compose.yaml" --pr
 case "$action" in
   start) "${compose[@]}" up -d --build "$side";;
   stop) "${compose[@]}" down;;
-  attach) exec docker exec -it "$PETER_CONTAINER_NAME" bash;;
+  attach)
+    if running=$(docker inspect --type container --format '{{.State.Running}}' "$PETER_CONTAINER_NAME" 2>/dev/null); then
+      if [[ "$running" != true ]]; then
+        docker start "$PETER_CONTAINER_NAME"
+      fi
+    else
+      "${compose[@]}" up -d --build "$side"
+    fi
+    exec docker exec -it "$PETER_CONTAINER_NAME" bash +e +u -i
+    ;;
   *) usage;;
 esac

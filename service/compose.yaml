@@ -1,0 +1,12 @@
+# System services run ROS directly; manual Compose retains the debugging wrapper.
+services:
+  remote:
+    command: [bash, /ros/ros_run.sh]
+    restart: unless-stopped
+    stdin_open: false
+    tty: false
+  main:
+    command: [bash, /ros/ros_run.sh]
+    restart: unless-stopped
+    stdin_open: false
+    tty: false
