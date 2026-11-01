@@ -34,7 +34,30 @@ case "$action" in
       # Preserve automatic creation of the default container without rebuilding.
       "${compose[@]}" up -d --no-build "$side"
     fi
-    exec docker exec -it "$PETER_CONTAINER_NAME" bash --rcfile /ros/ros_attach.sh +e +u -i
+    gui_env=()
+    if [[ "$side" == main && -n "${DISPLAY:-}" ]]; then
+      command -v xauth >/dev/null || {
+        echo 'Install xauth on the host to forward the current display into the container.' >&2
+        exit 1
+      }
+      records=$(xauth nlist "$DISPLAY" 2>/dev/null || true)
+      [[ -n "$records" ]] || {
+        echo "No X11 authentication cookie found for DISPLAY=$DISPLAY. Reconnect with ssh -Y and attach from that SSH session." >&2
+        exit 1
+      }
+      authfile="/tmp/peter-xauth-${DISPLAY//[^a-zA-Z0-9_.-]/_}"
+      # Build the cookie on the host, then copy it without logging its contents.
+      # FamilyWild makes the SSH cookie usable across host/container hostnames.
+      (
+        cookie=$(mktemp)
+        trap 'rm -f -- "$cookie"' EXIT
+        printf '%s\n' "$records" | sed 's/^..../ffff/' | xauth -f "$cookie" nmerge -
+        docker exec -i "$PETER_CONTAINER_NAME" sh -c \
+          'umask 077; rm -f -- "$1"; cat > "$1"' sh "$authfile" < "$cookie"
+      )
+      gui_env=(-e "DISPLAY=$DISPLAY" -e "XAUTHORITY=$authfile")
+    fi
+    exec docker exec -it "${gui_env[@]}" "$PETER_CONTAINER_NAME" bash --rcfile /ros/ros_attach.sh +e +u -i
     ;;
   *) usage;;
 esac
