@@ -35,4 +35,21 @@ services:
       ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
       ROS_LOCALHOST_ONLY: "0"
       PETER_SIDE: main
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /tmp/peter.xauthority
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - ./ros:/ros
+      - type: bind
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${XAUTHORITY:-/dev/null}
+        target: /tmp/peter.xauthority
+        read_only: true
+        bind:
+          create_host_path: false
     command: [bash, /ros/ros_container.sh]
