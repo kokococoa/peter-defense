@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-usage() { echo "Usage: bash container.sh [remote|main] {attach|start|stop} [container name]" >&2; exit 2; }
+usage() { echo "Usage: bash container.sh {attach|start|stop} [container name]" >&2; exit 2; }
 # Load only validated configuration values; never execute .env as shell code.
 side=""
 if [[ -f "$ROOT/.env" ]]; then
@@ -9,8 +9,7 @@ if [[ -f "$ROOT/.env" ]]; then
     case "$key" in PETER_SIDE) side="$value";; ROS_DOMAIN_ID) [[ "$value" =~ ^[0-9]+$ ]] || usage; export ROS_DOMAIN_ID="$value";; esac
   done < "$ROOT/.env"
 fi
-if [[ "${1:-}" == remote || "${1:-}" == main ]]; then side="$1"; shift; fi
-[[ "$side" == remote || "$side" == main ]] || { echo 'Run setup.sh or specify remote/main.' >&2; exit 2; }
+[[ "$side" == remote || "$side" == main ]] || { echo 'Set PETER_SIDE=remote or main in .env by running setup.sh.' >&2; exit 2; }
 [[ $# -ge 1 && $# -le 2 ]] || usage
 action="$1"
 export PETER_SIDE="$side"
@@ -26,9 +25,16 @@ case "$action" in
         docker start "$PETER_CONTAINER_NAME"
       fi
     else
-      "${compose[@]}" up -d --build "$side"
+      # Distinguish Docker access failures from a container that does not exist.
+      docker info >/dev/null
+      if [[ $# == 2 ]]; then
+        echo "Container '$PETER_CONTAINER_NAME' does not exist. Check the name or use 'bash container.sh attach' for this machine's default." >&2
+        exit 1
+      fi
+      # Preserve automatic creation of the default container without rebuilding.
+      "${compose[@]}" up -d --no-build "$side"
     fi
-    exec docker exec -it "$PETER_CONTAINER_NAME" bash +e +u -i
+    exec docker exec -it "$PETER_CONTAINER_NAME" bash --rcfile /ros/ros_attach.sh +e +u -i
     ;;
   *) usage;;
 esac
